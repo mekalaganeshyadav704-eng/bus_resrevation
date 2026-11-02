@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Tickets - Bus Reservation System</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .ticket-pass {
+            background: #fff;
+            border: 2px dashed #cbd5e1;
+            border-radius: var(--radius);
+            padding: 24px;
+            position: relative;
+            background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+            box-shadow: var(--shadow-md);
+            margin-top: 14px;
+        }
+        .ticket-pass-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 14px;
+            margin-bottom: 16px;
+        }
+        .seat-stepper {
+            display: inline-flex;
+            align-items: center;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            background: var(--card);
+        }
+        .seat-stepper button {
+            background: var(--bg-subtle);
+            border: none;
+            width: 42px;
+            height: 42px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text);
+            cursor: pointer;
+            transition: background var(--transition);
+        }
+        .seat-stepper button:hover:not(:disabled) {
+            background: var(--border);
+        }
+        .seat-stepper button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .seat-stepper input {
+            width: 60px;
+            height: 42px;
+            border: none;
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        .route-visual {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 14px;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="navbar-inner">
+        <a href="index.html" class="navbar-brand"><span>🚌</span> Bus Reservation System</a>
+        <button class="hamburger" id="hamburgerBtn" aria-label="Menu">☰</button>
+        <ul class="nav-links" id="navLinks">
+            <li><a href="index.html">Dashboard</a></li>
+            <li><a href="search.html">Search Buses</a></li>
+            <li><a href="buses.html">All Buses</a></li>
+            <li><a href="add-bus.html">Add Bus</a></li>
+            <li><a href="book.html" class="active">Book Tickets</a></li>
+            <li><a href="reservations.html">Reservations</a></li>
+            <li><a href="cancel.html">Cancel</a></li>
+        </ul>
+    </div>
+</nav>
+
+<div class="page-header">
+    <div class="page-header-inner">
+        <h1 class="page-title">🎟️ Book Tickets</h1>
+        <p class="page-subtitle">Select your desired bus service and reserve passenger seats instantly</p>
+    </div>
+</div>
+
+<div class="container" style="max-width: 900px;">
+
+    <!-- Step 1: Select Bus -->
+    <div class="card" id="step1Card">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:18px;">
+            <h2 class="card-title" style="margin-bottom:0;">Step 1 — Select a Bus Service</h2>
+            <a href="buses.html" class="btn btn-outline btn-sm">Browse All Schedules →</a>
+        </div>
+
+        <div class="form-grid-2">
+            <!-- Dropdown Selector -->
+            <div class="form-group">
+                <label for="busSelectDropdown">Choose From Active Buses</label>
+                <select id="busSelectDropdown">
+                    <option value="">-- Select Bus Route --</option>
+                </select>
+            </div>
+
+            <!-- Manual Bus ID Input -->
+            <div class="form-group">
+                <label for="selBusId">Or Enter Bus ID Directly</label>
+                <div style="display:flex; gap:8px;">
+                    <input type="number" id="selBusId" min="1" placeholder="e.g. 1">
+                    <button type="button" class="btn btn-primary" id="selectBtn" style="white-space:nowrap;">
+                        🔎 Load Bus
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="msg" id="selectMsg"></div>
+    </div>
+
+    <!-- Selected Bus Info Card -->
+    <div class="card selection-card" id="busInfoCard">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:16px;">
+            <h2 class="card-title" style="margin-bottom:0;">✅ Bus Service Selected</h2>
+            <span id="busStatusBadge" class="badge badge-available">Seats Available</span>
+        </div>
+
+        <div class="route-visual" id="routeDisplay">
+            <span id="routeSource">Source</span>
+            <span style="color:var(--accent);">➔</span>
+            <span id="routeDestination">Destination</span>
+        </div>
+
+        <div class="selection-grid" id="busInfoGrid"></div>
+    </div>
+
+    <!-- Step 2: Passenger Details (Hidden until bus is selected) -->
+    <div class="card" id="bookingCard" style="display:none;">
+        <h2 class="card-title">Step 2 — Passenger & Seat Details</h2>
+        <form id="bookingForm" autocomplete="off">
+            <input type="hidden" id="bookBusId">
+
+            <div class="form-grid-2">
+                <div class="form-group">
+                    <label for="pName">Passenger Full Name *</label>
+                    <input type="text" id="pName" placeholder="Enter passenger name" required maxlength="100">
+                    <small style="color:var(--text-muted); font-size:0.75rem;">Main passenger name on the ticket</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="pSeats">Number of Seats to Reserve *</label>
+                    <div style="display:flex; align-items:center; gap:14px; margin-top:2px;">
+                        <div class="seat-stepper">
+                            <button type="button" id="seatDecBtn" aria-label="Decrease seats">−</button>
+                            <input type="number" id="pSeats" min="1" max="1" value="1" required readonly>
+                            <button type="button" id="seatIncBtn" aria-label="Increase seats">+</button>
+                        </div>
+                        <span id="maxSeatsHint" class="badge badge-available">1 seat max</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Seat booking preview alert -->
+            <div class="alert-box alert-info" style="margin-top:16px;" id="bookingSummaryAlert">
+                <span>ℹ️</span>
+                <span id="summaryText">Reserving 1 seat on this bus.</span>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-success" id="bookBtn" style="padding:12px 28px; font-size:0.95rem;">
+                    🎟️ Confirm & Book Tickets
+                </button>
+                <button type="button" class="btn btn-secondary" id="resetBooking">Reset</button>
+            </div>
+        </form>
+        <div class="msg" id="bookMsg"></div>
+    </div>
+
+    <!-- Booking Confirmation Card (Shown upon successful booking) -->
+    <div class="card" id="confirmCard" style="display:none;">
+        <div style="text-align:center; margin-bottom:18px;">
+            <span style="font-size:3rem;">🎉</span>
+            <h2 class="card-title" style="justify-content:center; margin-bottom:6px;">Booking Confirmed!</h2>
+            <p class="text-muted" style="font-size:0.9rem;">Your bus reservation has been successfully confirmed and recorded.</p>
+        </div>
+
+        <div class="ticket-pass">
+            <div class="ticket-pass-header">
+                <div>
+                    <span style="font-size:0.75rem; text-transform:uppercase; color:var(--text-muted); font-weight:700;">Boarding Pass</span>
+                    <h3 id="confRoute" style="color:var(--primary); font-size:1.3rem; margin-top:2px;">-</h3>
+                </div>
+                <div style="text-align:right;">
+                    <span style="font-size:0.75rem; text-transform:uppercase; color:var(--text-muted); font-weight:700;">Reservation ID</span>
+                    <div id="confResId" style="font-size:1.5rem; font-weight:800; color:var(--accent);">-</div>
+                </div>
+            </div>
+
+            <div class="selection-grid" id="confirmGrid"></div>
+        </div>
+
+        <div style="margin-top:24px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+            <button type="button" class="btn btn-outline" onclick="window.print()">🖨️ Print Ticket</button>
+            <a href="reservations.html" class="btn btn-primary">📑 View All Reservations</a>
+            <button type="button" class="btn btn-secondary" id="bookAnother">➕ Book Another Ticket</button>
+        </div>
+    </div>
+
+</div>
+
+<div class="footer">Bus Reservation System &copy; 2026 • Professional Transit Management</div>
+
+<script src="js/common.js"></script>
+<script>
+    var availableBuses = [];
+    var selectedBus = null;
+
+    // Load all buses for dropdown selector
+    async function loadBusesList() {
+        var dropdown = document.getElementById("busSelectDropdown");
+        try {
+            var buses = await apiRequest("/api/buses");
+            availableBuses = Array.isArray(buses) ? buses : [];
+            dropdown.innerHTML = '<option value="">-- Choose a bus to book --</option>';
+
+            availableBuses.forEach(function(b) {
+                var opt = document.createElement("option");
+                opt.value = b.bus_id;
+                var seatsText = b.available_seats > 0 ? (b.available_seats + " seats left") : "SOLD OUT";
+                opt.textContent = "#" + b.bus_id + " [" + b.service_no + "] " + b.source + " → " + b.destination + " (" + fmtDate(b.departure_date) + " " + fmtTime(b.departure_time) + ") - " + seatsText;
+                dropdown.appendChild(opt);
+            });
+
+            // Check if URL has ?bus_id= parameter
+            var params = new URLSearchParams(window.location.search);
+            var queryBusId = params.get("bus_id");
+            if (queryBusId) {
+                document.getElementById("selBusId").value = queryBusId;
+                dropdown.value = queryBusId;
+                fetchAndSelectBus(queryBusId);
+            }
+        } catch (e) {
+            console.error("Failed to load buses dropdown:", e);
+        }
+    }
+
+    // Dropdown change handler
+    document.getElementById("busSelectDropdown").addEventListener("change", function(e) {
+        var val = e.target.value;
+        if (val) {
+            document.getElementById("selBusId").value = val;
+            fetchAndSelectBus(val);
+        }
+    });
+
+    // Manual Bus ID Button
+    document.getElementById("selectBtn").addEventListener("click", function() {
+        var val = document.getElementById("selBusId").value.trim();
+        if (val) {
+            document.getElementById("busSelectDropdown").value = val;
+            fetchAndSelectBus(val);
+        } else {
+            showMsg(document.getElementById("selectMsg"), "Please enter a Bus ID.", "warning");
+        }
+    });
+
+    // Enter key inside Bus ID input
+    document.getElementById("selBusId").addEventListener("keypress", function(e) {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            document.getElementById("selectBtn").click();
+        }
+    });
+
+    // Fetch and display selected bus details
+    async function fetchAndSelectBus(busId) {
+        var msgEl = document.getElementById("selectMsg");
+        hideMsg(msgEl);
+
+        var numId = parseInt(busId, 10);
+        if (!numId || numId <= 0) {
+            showMsg(msgEl, "Please specify a valid Bus ID.", "warning");
+            return;
+        }
+
+        try {
+            var result = await apiRequest("/api/buses/" + numId);
+            if (!result || !result.bus) {
+                throw new Error("Bus #" + numId + " not found.");
+            }
+
+            var bus = result.bus;
+            selectedBus = bus;
+
+            // Update route visually
+            document.getElementById("routeSource").textContent = bus.source;
+            document.getElementById("routeDestination").textContent = bus.destination;
+
+            // Details grid
+            var grid = document.getElementById("busInfoGrid");
+            grid.innerHTML =
+                "<div><strong>Bus ID:</strong> #" + bus.bus_id + "</div>" +
+                "<div><strong>Service No:</strong> " + bus.service_no + "</div>" +
+                "<div><strong>Departure Date:</strong> " + fmtDate(bus.departure_date) + "</div>" +
+                "<div><strong>Departure Time:</strong> " + fmtTime(bus.departure_time) + "</div>" +
+                "<div><strong>Total Capacity:</strong> " + bus.total_seats + " seats</div>" +
+                "<div><strong>Available Seats:</strong> <span class='badge " + (bus.available_seats > 5 ? 'badge-available' : (bus.available_seats > 0 ? 'badge-low' : 'badge-full')) + "'>" + bus.available_seats + " left</span></div>";
+
+            document.getElementById("busInfoCard").classList.add("active");
+
+            var statusBadge = document.getElementById("busStatusBadge");
+            var avail = Number(bus.available_seats);
+
+            if (avail > 0) {
+                statusBadge.className = "badge badge-available";
+                statusBadge.textContent = avail + " Seats Available";
+
+                // Setup Step 2
+                document.getElementById("bookingCard").style.display = "block";
+                document.getElementById("confirmCard").style.display = "none";
+                document.getElementById("bookBusId").value = bus.bus_id;
+
+                var seatInput = document.getElementById("pSeats");
+                seatInput.value = 1;
+                seatInput.max = avail;
+                document.getElementById("maxSeatsHint").textContent = "Max " + avail + " seat" + (avail > 1 ? "s" : "");
+                updateSeatSummary(1);
+
+                // Focus on passenger name
+                document.getElementById("pName").focus();
+            } else {
+                statusBadge.className = "badge badge-full";
+                statusBadge.textContent = "Sold Out";
+                document.getElementById("bookingCard").style.display = "none";
+                showMsg(msgEl, "⚠️ Bus #" + bus.bus_id + " is completely sold out. Please choose a different bus.", "warning");
+            }
+
+        } catch (err) {
+            document.getElementById("busInfoCard").classList.remove("active");
+            document.getElementById("bookingCard").style.display = "none";
+            showMsg(msgEl, err.message, "error");
+        }
+    }
+
+    // Seat Stepper logic
+    function updateSeatSummary(count) {
+        if (!selectedBus) return;
+        var summary = document.getElementById("summaryText");
+        var remainingAfter = selectedBus.available_seats - count;
+        summary.textContent = "Reserving " + count + " seat" + (count > 1 ? "s" : "") + 
+            " for " + selectedBus.source + " → " + selectedBus.destination + 
+            " (" + remainingAfter + " seat" + (remainingAfter !== 1 ? "s" : "") + " will remain available).";
+    }
+
+    document.getElementById("seatDecBtn").addEventListener("click", function() {
+        var input = document.getElementById("pSeats");
+        var val = parseInt(input.value, 10) || 1;
+        if (val > 1) {
+            input.value = val - 1;
+            updateSeatSummary(val - 1);
+        }
+    });
+
+    document.getElementById("seatIncBtn").addEventListener("click", function() {
+        if (!selectedBus) return;
+        var input = document.getElementById("pSeats");
+        var val = parseInt(input.value, 10) || 1;
+        var max = Number(selectedBus.available_seats);
+        if (val < max) {
+            input.value = val + 1;
+            updateSeatSummary(val + 1);
+        } else {
+            showToast("Maximum available seats on this bus is " + max, "warning");
+        }
+    });
+
+    // Form submission
+    document.getElementById("bookingForm").addEventListener("submit", async function(e) {
+        e.preventDefault();
+        var msgEl = document.getElementById("bookMsg");
+        hideMsg(msgEl);
+
+        var passengerName = document.getElementById("pName").value.trim();
+        var busId = parseInt(document.getElementById("bookBusId").value, 10);
+        var seats = parseInt(document.getElementById("pSeats").value, 10);
+
+        if (!passengerName) {
+            showMsg(msgEl, "Please enter passenger name.", "warning");
+            document.getElementById("pName").focus();
+            return;
+        }
+
+        if (!busId || !seats || seats < 1) {
+            showMsg(msgEl, "Please enter a valid number of seats.", "warning");
+            return;
+        }
+
+        var btn = document.getElementById("bookBtn");
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Reserving Seats...';
+
+        try {
+            var payload = {
+                bus_id: busId,
+                passenger_name: passengerName,
+                seats_booked: seats
+            };
+
+            var result = await apiRequest("/api/reservations", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+
+            // Show Ticket Confirmation
+            document.getElementById("step1Card").style.display = "none";
+            document.getElementById("busInfoCard").style.display = "none";
+            document.getElementById("bookingCard").style.display = "none";
+
+            var confCard = document.getElementById("confirmCard");
+            confCard.style.display = "block";
+
+            document.getElementById("confRoute").textContent = 
+                (selectedBus ? selectedBus.source : "") + " → " + (selectedBus ? selectedBus.destination : "");
+            document.getElementById("confResId").textContent = "#" + result.reservation_id;
+
+            var confGrid = document.getElementById("confirmGrid");
+            confGrid.innerHTML =
+                "<div><strong>Ticket Number:</strong> #" + result.reservation_id + "</div>" +
+                "<div><strong>Passenger Name:</strong> " + escapeHtml(passengerName) + "</div>" +
+                "<div><strong>Service No:</strong> " + (selectedBus ? selectedBus.service_no : ("Bus #" + busId)) + "</div>" +
+                "<div><strong>Departure Date:</strong> " + (selectedBus ? fmtDate(selectedBus.departure_date) : "-") + "</div>" +
+                "<div><strong>Departure Time:</strong> " + (selectedBus ? fmtTime(selectedBus.departure_time) : "-") + "</div>" +
+                "<div><strong>Seats Reserved:</strong> <span class='badge badge-available'>" + seats + " seat" + (seats > 1 ? "s" : "") + "</span></div>" +
+                "<div><strong>Status:</strong> <span class='badge badge-available'>Confirmed</span></div>" +
+                "<div><strong>Issued On:</strong> " + fmtDateTime(new Date().toISOString()) + "</div>";
+
+            showToast("Ticket #" + result.reservation_id + " booked successfully!", "success");
+            loadStats();
+
+        } catch (err) {
+            showMsg(msgEl, err.message, "error");
+            showToast(err.message, "error");
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = "🎟️ Confirm & Book Tickets";
+        }
+    });
+
+    function escapeHtml(str) {
+        if (!str) return "";
+        return String(str)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    // Reset Form
+    document.getElementById("resetBooking").addEventListener("click", function() {
+        document.getElementById("bookingForm").reset();
+        document.getElementById("pSeats").value = 1;
+        updateSeatSummary(1);
+        hideMsg(document.getElementById("bookMsg"));
+    });
+
+    // Book another ticket
+    document.getElementById("bookAnother").addEventListener("click", function() {
+        document.getElementById("confirmCard").style.display = "none";
+        document.getElementById("step1Card").style.display = "block";
+        document.getElementById("busInfoCard").style.display = "none";
+        document.getElementById("busInfoCard").classList.remove("active");
+        document.getElementById("bookingCard").style.display = "none";
+        document.getElementById("busSelectDropdown").value = "";
+        document.getElementById("selBusId").value = "";
+        document.getElementById("bookingForm").reset();
+        hideMsg(document.getElementById("selectMsg"));
+        hideMsg(document.getElementById("bookMsg"));
+        selectedBus = null;
+        loadBusesList();
+    });
+
+    onReady(loadBusesList);
+</script>
+
+</body>
+</html>

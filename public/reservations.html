@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reservations - Bus Reservation System</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="navbar-inner">
+        <a href="index.html" class="navbar-brand"><span>🚌</span> Bus Reservation System</a>
+        <button class="hamburger" id="hamburgerBtn" aria-label="Menu">☰</button>
+        <ul class="nav-links" id="navLinks">
+            <li><a href="index.html">Dashboard</a></li>
+            <li><a href="search.html">Search Buses</a></li>
+            <li><a href="buses.html">All Buses</a></li>
+            <li><a href="add-bus.html">Add Bus</a></li>
+            <li><a href="book.html">Book Tickets</a></li>
+            <li><a href="reservations.html" class="active">Reservations</a></li>
+            <li><a href="cancel.html">Cancel</a></li>
+        </ul>
+    </div>
+</nav>
+
+<div class="page-header">
+    <div class="page-header-inner">
+        <h1 class="page-title">📑 Passenger Reservations</h1>
+        <p class="page-subtitle">Track, filter, and manage all confirmed bus reservations</p>
+    </div>
+</div>
+
+<div class="container">
+
+    <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px; margin-bottom:20px;">
+            <div>
+                <h2 class="card-title" style="margin-bottom:4px;" id="resTitle">All Reservations</h2>
+                <span class="text-muted" id="resSubtitle" style="font-size:0.85rem;">Loading bookings...</span>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                <input type="text" id="filterInput" placeholder="🔍 Search passenger, ticket #, route..." 
+                       style="padding:8px 14px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:0.85rem; min-width:260px;">
+                <button class="btn btn-secondary btn-sm" id="refreshBtn">🔄 Refresh</button>
+                <a href="book.html" class="btn btn-success btn-sm">🎟️ New Booking</a>
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Ticket #</th>
+                        <th>Passenger Name</th>
+                        <th>Bus Service</th>
+                        <th>Route</th>
+                        <th>Departure Date</th>
+                        <th>Departure Time</th>
+                        <th>Seats</th>
+                        <th>Booked On</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="resBody">
+                    <tr><td colspan="9" class="empty-state"><span class="spinner"></span> Loading reservations...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="msg" id="resMsg"></div>
+    </div>
+
+</div>
+
+<div class="footer">Bus Reservation System &copy; 2026 • Professional Transit Management</div>
+
+<script src="js/common.js"></script>
+<script>
+    var allReservations = [];
+
+    async function loadReservations() {
+        var tbody = document.getElementById("resBody");
+        var msgEl = document.getElementById("resMsg");
+        hideMsg(msgEl);
+
+        try {
+            var data = await apiRequest("/api/reservations");
+            allReservations = Array.isArray(data) ? data : [];
+            renderReservations(allReservations);
+        } catch (err) {
+            tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Failed to load reservations.</td></tr>';
+            showMsg(msgEl, err.message, "error");
+        }
+    }
+
+    function renderReservations(list) {
+        var tbody = document.getElementById("resBody");
+        tbody.innerHTML = "";
+
+        var count = list.length;
+        var totalSeats = list.reduce(function(sum, r) { return sum + (Number(r.seats_booked) || 0); }, 0);
+
+        document.getElementById("resTitle").textContent = "All Reservations (" + count + ")";
+        document.getElementById("resSubtitle").textContent = count + " booking" + (count !== 1 ? "s" : "") + " • " + totalSeats + " total seat(s) booked";
+
+        if (count === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" class="empty-state">' +
+                '<span class="empty-state-icon">📑</span>' +
+                '<strong>No reservations found.</strong><br>' +
+                '<span class="text-muted">No tickets match your filter, or none have been booked yet.</span><br><br>' +
+                '<a href="book.html" class="btn btn-primary btn-sm">🎟️ Book a Ticket Now</a>' +
+                '</td></tr>';
+            return;
+        }
+
+        list.forEach(function(r) {
+            var tr = document.createElement("tr");
+
+            // Ticket #
+            var idTd = document.createElement("td");
+            idTd.innerHTML = '<strong style="color:var(--accent);">#' + r.reservation_id + '</strong>';
+            tr.appendChild(idTd);
+
+            // Passenger
+            var passTd = document.createElement("td");
+            passTd.innerHTML = '<strong>' + escapeHtml(r.passenger_name) + '</strong>';
+            tr.appendChild(passTd);
+
+            // Bus Service
+            var busTd = document.createElement("td");
+            busTd.innerHTML = '<span>' + escapeHtml(r.service_no || ('Bus #' + r.bus_id)) + '</span>';
+            tr.appendChild(busTd);
+
+            // Route
+            var routeTd = document.createElement("td");
+            routeTd.innerHTML = '<span>' + escapeHtml(r.source || "-") + ' <span style="color:var(--accent);">→</span> ' + escapeHtml(r.destination || "-") + '</span>';
+            tr.appendChild(routeTd);
+
+            // Departure Date
+            tr.appendChild(textCell(fmtDate(r.departure_date)));
+
+            // Departure Time
+            tr.appendChild(textCell(fmtTime(r.departure_time)));
+
+            // Seats
+            var seatTd = document.createElement("td");
+            seatTd.innerHTML = '<span class="badge badge-available" style="font-weight:600;">' + r.seats_booked + ' seat' + (r.seats_booked > 1 ? 's' : '') + '</span>';
+            tr.appendChild(seatTd);
+
+            // Booked On
+            tr.appendChild(textCell(fmtDateTime(r.booking_date)));
+
+            // Actions
+            var actTd = document.createElement("td");
+            actTd.style.whiteSpace = "nowrap";
+
+            var cancelBtn = document.createElement("button");
+            cancelBtn.className = "btn btn-danger btn-sm";
+            cancelBtn.innerHTML = "❌ Cancel";
+            cancelBtn.style.padding = "4px 10px";
+            cancelBtn.style.fontSize = "0.78rem";
+            cancelBtn.addEventListener("click", function() {
+                cancelReservation(r.reservation_id, r.passenger_name, r.seats_booked);
+            });
+
+            var viewLink = document.createElement("a");
+            viewLink.className = "btn btn-outline btn-sm";
+            viewLink.href = "cancel.html?id=" + r.reservation_id;
+            viewLink.innerHTML = "🔎 Details";
+            viewLink.style.padding = "4px 10px";
+            viewLink.style.fontSize = "0.78rem";
+            viewLink.style.marginLeft = "6px";
+
+            actTd.appendChild(cancelBtn);
+            actTd.appendChild(viewLink);
+            tr.appendChild(actTd);
+
+            tbody.appendChild(tr);
+        });
+    }
+
+    function escapeHtml(str) {
+        if (!str) return "";
+        return String(str)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    async function cancelReservation(resId, name, seats) {
+        var msg = "Cancel Reservation #" + resId + " for " + name + "? (" + seats + " seat(s) will be restored)";
+        if (!confirm(msg)) return;
+
+        var msgEl = document.getElementById("resMsg");
+        hideMsg(msgEl);
+
+        try {
+            var res = await apiRequest("/api/reservations/" + resId, { method: "DELETE" });
+            showMsg(msgEl, "✅ " + res.message, "success");
+            showToast("Reservation #" + resId + " cancelled successfully.", "success");
+            loadReservations();
+            loadStats();
+        } catch (err) {
+            showMsg(msgEl, err.message, "error");
+            showToast("Failed to cancel: " + err.message, "error");
+        }
+    }
+
+    // Realtime filter
+    document.getElementById("filterInput").addEventListener("input", function(e) {
+        var q = e.target.value.toLowerCase().trim();
+        if (!q) {
+            renderReservations(allReservations);
+            return;
+        }
+
+        var filtered = allReservations.filter(function(r) {
+            var matchId = String(r.reservation_id).includes(q);
+            var matchName = String(r.passenger_name || "").toLowerCase().includes(q);
+            var matchService = String(r.service_no || "").toLowerCase().includes(q);
+            var matchRoute = (String(r.source || "") + " " + String(r.destination || "")).toLowerCase().includes(q);
+            return matchId || matchName || matchService || matchRoute;
+        });
+
+        renderReservations(filtered);
+    });
+
+    document.getElementById("refreshBtn").addEventListener("click", loadReservations);
+    onReady(loadReservations);
+</script>
+
+</body>
+</html>

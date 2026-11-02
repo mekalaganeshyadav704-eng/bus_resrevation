@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Buses - Bus Reservation System</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .swap-btn {
+            background: var(--bg-subtle);
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all var(--transition);
+            align-self: flex-end;
+            margin-bottom: 2px;
+        }
+        .swap-btn:hover {
+            background: var(--border);
+            color: var(--accent);
+            transform: rotate(180deg);
+        }
+        .popular-routes {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            font-size: 0.85rem;
+        }
+        .route-chip {
+            background: var(--bg-subtle);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 5px 14px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+        .route-chip:hover {
+            background: var(--accent-subtle);
+            border-color: var(--accent);
+            color: var(--accent);
+            transform: translateY(-1px);
+        }
+        .search-results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 18px;
+            margin-top: 20px;
+        }
+        .bus-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow-xs);
+            transition: all var(--transition);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .bus-card:hover {
+            box-shadow: var(--shadow-md);
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="navbar-inner">
+        <a href="index.html" class="navbar-brand"><span>🚌</span> Bus Reservation System</a>
+        <button class="hamburger" id="hamburgerBtn" aria-label="Menu">☰</button>
+        <ul class="nav-links" id="navLinks">
+            <li><a href="index.html">Dashboard</a></li>
+            <li><a href="search.html" class="active">Search Buses</a></li>
+            <li><a href="buses.html">All Buses</a></li>
+            <li><a href="add-bus.html">Add Bus</a></li>
+            <li><a href="book.html">Book Tickets</a></li>
+            <li><a href="reservations.html">Reservations</a></li>
+            <li><a href="cancel.html">Cancel</a></li>
+        </ul>
+    </div>
+</nav>
+
+<div class="page-header">
+    <div class="page-header-inner">
+        <h1 class="page-title">🔍 Search Buses</h1>
+        <p class="page-subtitle">Find scheduled bus services by route station and optional travel date</p>
+    </div>
+</div>
+
+<div class="container">
+
+    <!-- Search Form Card -->
+    <div class="card">
+        <h2 class="card-title">Select Route & Travel Date</h2>
+        <form id="searchForm" autocomplete="off">
+            <div style="display:grid; grid-template-columns: 1fr auto 1fr 1fr; gap:16px; align-items:flex-end;" id="searchFieldsRow">
+                
+                <!-- Source Station Dropdown -->
+                <div class="form-group">
+                    <label for="source">Source Station *</label>
+                    <select id="source" required>
+                        <option value="">-- Choose Origin Station --</option>
+                    </select>
+                </div>
+
+                <!-- Swap Button -->
+                <button type="button" class="swap-btn" id="swapBtn" title="Swap Origin and Destination" aria-label="Swap stations">
+                    ⇄
+                </button>
+
+                <!-- Destination Station Dropdown -->
+                <div class="form-group">
+                    <label for="destination">Destination Station *</label>
+                    <select id="destination" required>
+                        <option value="">-- Choose Destination Station --</option>
+                    </select>
+                </div>
+
+                <!-- Optional Travel Date -->
+                <div class="form-group">
+                    <label for="date">Travel Date <span style="font-weight:normal; color:var(--text-muted);">(Optional)</span></label>
+                    <input type="date" id="date">
+                </div>
+            </div>
+
+            <!-- Popular Route Quick Picks -->
+            <div class="popular-routes">
+                <span style="color:var(--text-muted); font-weight:600;">Popular Routes:</span>
+                <span class="route-chip" data-src="Kurnool" data-dst="Hyderabad">Kurnool → Hyderabad</span>
+                <span class="route-chip" data-src="Hyderabad" data-dst="Vijayawada">Hyderabad → Vijayawada</span>
+                <span class="route-chip" data-src="Kurnool" data-dst="Bangalore">Kurnool → Bangalore</span>
+                <span class="route-chip" data-src="Vijayawada" data-dst="Chennai">Vijayawada → Chennai</span>
+                <span class="route-chip" data-src="Hyderabad" data-dst="Kurnool">Hyderabad → Kurnool</span>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary" id="searchSubmitBtn">
+                    🔍 Search Available Buses
+                </button>
+                <button type="button" class="btn btn-secondary" id="clearBtn">Clear Criteria</button>
+                <a href="buses.html" class="btn btn-outline btn-sm" style="margin-left:auto;">Browse All Buses Schedule →</a>
+            </div>
+        </form>
+        <div class="msg" id="searchMsg"></div>
+    </div>
+
+    <!-- Search Results Card -->
+    <div class="card" id="resultsCard" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:18px;">
+            <h2 class="card-title" style="margin-bottom:0;" id="resultsTitle">Search Results</h2>
+            <span class="badge badge-available" id="resultsBadge">0 Buses</span>
+        </div>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Bus ID</th>
+                        <th>Service No.</th>
+                        <th>Route</th>
+                        <th>Departure Date</th>
+                        <th>Departure Time</th>
+                        <th>Capacity</th>
+                        <th>Available Seats</th>
+                        <th>Booking Action</th>
+                    </tr>
+                </thead>
+                <tbody id="resultBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<div class="footer">Bus Reservation System &copy; 2026 • Professional Transit Management</div>
+
+<script src="js/common.js"></script>
+<script>
+    // Load station locations for dropdown menus with robust fallback
+    async function loadLocations() {
+        try {
+            var sources = new Set();
+            var destinations = new Set();
+
+            try {
+                var data = await apiRequest("/api/locations");
+                if (data && data.success && Array.isArray(data.locations) && data.locations.length > 0) {
+                    data.locations.forEach(function(loc) {
+                        sources.add(loc);
+                        destinations.add(loc);
+                    });
+                }
+            } catch (locErr) {
+                console.log("Fallback to /api/buses for station list...");
+            }
+
+            // Fallback: extract distinct sources and destinations from /api/buses
+            if (sources.size === 0) {
+                var buses = await apiRequest("/api/buses");
+                if (Array.isArray(buses)) {
+                    buses.forEach(function(b) {
+                        if (b.source) sources.add(b.source.trim());
+                        if (b.destination) destinations.add(b.destination.trim());
+                    });
+                }
+            }
+
+            var srcSelect = document.getElementById("source");
+            var destSelect = document.getElementById("destination");
+
+            srcSelect.innerHTML = '<option value="">-- Choose Origin Station --</option>';
+            destSelect.innerHTML = '<option value="">-- Choose Destination Station --</option>';
+
+            var sortedSources = Array.from(sources).sort();
+            var sortedDests = Array.from(destinations).sort();
+
+            sortedSources.forEach(function(loc) {
+                var opt = document.createElement("option");
+                opt.value = loc;
+                opt.textContent = loc;
+                srcSelect.appendChild(opt);
+            });
+
+            sortedDests.forEach(function(loc) {
+                var opt = document.createElement("option");
+                opt.value = loc;
+                opt.textContent = loc;
+                destSelect.appendChild(opt);
+            });
+        } catch (err) {
+            showMsg(document.getElementById("searchMsg"), "Could not load station list: " + err.message, "warning");
+        }
+    }
+
+    // Swap button
+    document.getElementById("swapBtn").addEventListener("click", function() {
+        var srcSelect = document.getElementById("source");
+        var dstSelect = document.getElementById("destination");
+        var tmp = srcSelect.value;
+        srcSelect.value = dstSelect.value;
+        dstSelect.value = tmp;
+    });
+
+    // Popular route chips
+    document.querySelectorAll(".route-chip").forEach(function(chip) {
+        chip.addEventListener("click", function() {
+            var src = chip.getAttribute("data-src");
+            var dst = chip.getAttribute("data-dst");
+            document.getElementById("source").value = src;
+            document.getElementById("destination").value = dst;
+            document.getElementById("date").value = "";
+            document.getElementById("searchForm").dispatchEvent(new Event("submit"));
+        });
+    });
+
+    // Search form submit
+    document.getElementById("searchForm").addEventListener("submit", async function(e) {
+        e.preventDefault();
+        var msgEl = document.getElementById("searchMsg");
+        hideMsg(msgEl);
+
+        var source = document.getElementById("source").value.trim();
+        var dest = document.getElementById("destination").value.trim();
+        var date = document.getElementById("date").value;
+
+        if (!source || !dest) {
+            showMsg(msgEl, "Please choose both source and destination stations.", "warning");
+            return;
+        }
+
+        if (source.toLowerCase() === dest.toLowerCase()) {
+            showMsg(msgEl, "Origin and destination stations cannot be the same.", "warning");
+            return;
+        }
+
+        var btn = document.getElementById("searchSubmitBtn");
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Searching...';
+
+        try {
+            var url = "/api/search?source=" + encodeURIComponent(source) +
+                      "&destination=" + encodeURIComponent(dest);
+            if (date) {
+                url += "&date=" + encodeURIComponent(date);
+            }
+
+            var buses = await apiRequest(url);
+            var card = document.getElementById("resultsCard");
+            var tbody = document.getElementById("resultBody");
+            var title = document.getElementById("resultsTitle");
+            var badge = document.getElementById("resultsBadge");
+            tbody.innerHTML = "";
+            card.style.display = "block";
+
+            var count = buses.length;
+            badge.textContent = count + " Bus" + (count !== 1 ? "es" : "");
+
+            if (count === 0) {
+                title.textContent = "No Buses Available on this Route";
+                badge.className = "badge badge-full";
+                var dateHint = date ? (" for date " + date) : "";
+                tbody.innerHTML = '<tr><td colspan="8" class="empty-state">' +
+                    '<span class="empty-state-icon">🔍</span>' +
+                    '<strong>No buses found from ' + escapeHtml(source) + ' to ' + escapeHtml(dest) + dateHint + '.</strong><br>' +
+                    '<span class="text-muted">Try clearing the date filter or view all available schedules.</span><br><br>' +
+                    '<a href="buses.html" class="btn btn-outline btn-sm">View Complete Bus Schedule</a>' +
+                    '</td></tr>';
+                return;
+            }
+
+            title.textContent = count + " Bus" + (count > 1 ? "es" : "") + " Found for " + source + " → " + dest;
+            badge.className = "badge badge-available";
+
+            buses.forEach(function(b) {
+                var tr = document.createElement("tr");
+
+                // Bus ID
+                tr.appendChild(textCell("#" + b.bus_id));
+
+                // Service No
+                var sTd = document.createElement("td");
+                sTd.innerHTML = '<strong>' + escapeHtml(b.service_no) + '</strong>';
+                tr.appendChild(sTd);
+
+                // Route
+                var rTd = document.createElement("td");
+                rTd.innerHTML = escapeHtml(b.source) + ' <span style="color:var(--accent);">→</span> ' + escapeHtml(b.destination);
+                tr.appendChild(rTd);
+
+                // Date
+                tr.appendChild(textCell(fmtDate(b.departure_date)));
+
+                // Time
+                tr.appendChild(textCell(fmtTime(b.departure_time)));
+
+                // Total
+                tr.appendChild(textCell(b.total_seats + " seats"));
+
+                // Available
+                var atd = document.createElement("td");
+                atd.innerHTML = seatBadge(b.available_seats);
+                tr.appendChild(atd);
+
+                // Action
+                var actTd = document.createElement("td");
+                if (Number(b.available_seats) > 0) {
+                    var a = document.createElement("a");
+                    a.className = "btn btn-success btn-sm";
+                    a.href = "book.html?bus_id=" + b.bus_id;
+                    a.innerHTML = "🎟️ Book Seat";
+                    actTd.appendChild(a);
+                } else {
+                    actTd.innerHTML = '<span class="badge badge-full">Sold Out</span>';
+                }
+                tr.appendChild(actTd);
+
+                tbody.appendChild(tr);
+            });
+
+            card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+
+        } catch (err) {
+            showMsg(msgEl, err.message, "error");
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = "🔍 Search Available Buses";
+        }
+    });
+
+    function escapeHtml(str) {
+        if (!str) return "";
+        return String(str)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    // Clear Button
+    document.getElementById("clearBtn").addEventListener("click", function() {
+        document.getElementById("searchForm").reset();
+        hideMsg(document.getElementById("searchMsg"));
+        document.getElementById("resultsCard").style.display = "none";
+    });
+
+    onReady(loadLocations);
+</script>
+
+</body>
+</html>

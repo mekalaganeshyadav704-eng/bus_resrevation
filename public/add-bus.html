@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Bus - Bus Reservation System</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="navbar-inner">
+        <a href="index.html" class="navbar-brand"><span>🚌</span> Bus Reservation System</a>
+        <button class="hamburger" id="hamburgerBtn" aria-label="Menu">☰</button>
+        <ul class="nav-links" id="navLinks">
+            <li><a href="index.html">Dashboard</a></li>
+            <li><a href="search.html">Search Buses</a></li>
+            <li><a href="buses.html">All Buses</a></li>
+            <li><a href="add-bus.html" class="active">Add Bus</a></li>
+            <li><a href="book.html">Book Tickets</a></li>
+            <li><a href="reservations.html">Reservations</a></li>
+            <li><a href="cancel.html">Cancel</a></li>
+        </ul>
+    </div>
+</nav>
+
+<div class="page-header">
+    <div class="page-header-inner">
+        <h1 class="page-title">➕ Register New Bus Service</h1>
+        <p class="page-subtitle">Add a scheduled bus route to the fleet with departure timing and seat capacity</p>
+    </div>
+</div>
+
+<div class="container" style="max-width: 860px;">
+
+    <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:20px;">
+            <h2 class="card-title" style="margin-bottom:0;">Bus Schedule Specifications</h2>
+            <a href="buses.html" class="btn btn-outline btn-sm">View Existing Fleet →</a>
+        </div>
+
+        <form id="addBusForm" autocomplete="off">
+            <div class="form-grid-2">
+                <div class="form-group">
+                    <label for="serviceNo">Service Number *</label>
+                    <input type="text" id="serviceNo" placeholder="e.g. EXP-5001" required maxlength="20" autofocus>
+                    <small style="color:var(--text-muted); font-size:0.75rem;">Unique service code or route identifier</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="seats">Total Seat Capacity *</label>
+                    <input type="number" id="seats" min="1" max="500" placeholder="e.g. 40" required value="40">
+                    <small style="color:var(--text-muted); font-size:0.75rem;">Total bookable seats on this vehicle (1-500)</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="source">Origin / Source Station *</label>
+                    <input type="text" id="source" placeholder="e.g. Kurnool" required maxlength="100">
+                </div>
+
+                <div class="form-group">
+                    <label for="destination">Destination Station *</label>
+                    <input type="text" id="destination" placeholder="e.g. Hyderabad" required maxlength="100">
+                </div>
+
+                <div class="form-group">
+                    <label for="date">Departure Date *</label>
+                    <input type="date" id="date" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="time">Departure Time *</label>
+                    <input type="time" id="time" required value="08:00">
+                </div>
+            </div>
+
+            <!-- Live Route Summary Preview -->
+            <div class="alert-box alert-info" style="margin-top:20px;" id="livePreviewBox">
+                <span>🚌</span>
+                <div id="livePreviewText">
+                    <strong>Fleet Preview:</strong> Enter bus details above to preview the route schedule.
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary" id="submitBtn" style="padding:12px 28px;">
+                    ➕ Register Bus Service
+                </button>
+                <button type="reset" class="btn btn-secondary" id="resetBtn">Reset</button>
+            </div>
+        </form>
+        <div class="msg" id="addMsg"></div>
+
+        <!-- Success Action Box (Hidden initially) -->
+        <div id="successActions" style="display:none; margin-top:20px; padding:18px; background:var(--success-bg); border:1px solid var(--success-border); border-radius:var(--radius-sm);">
+            <div style="font-weight:700; color:#065f46; margin-bottom:12px;" id="successSummary">Bus registered successfully!</div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <a href="#" id="bookNowLink" class="btn btn-success btn-sm">🎟️ Book Tickets on this Bus</a>
+                <a href="buses.html" class="btn btn-primary btn-sm">📋 View in All Buses</a>
+                <button type="button" class="btn btn-secondary btn-sm" id="addAnotherBtn">➕ Add Another Bus</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="footer">Bus Reservation System &copy; 2026 • Professional Transit Management</div>
+
+<script src="js/common.js"></script>
+<script>
+    // Set date input minimum to today
+    (function setMinDate() {
+        var today = new Date().toISOString().split("T")[0];
+        var dateInput = document.getElementById("date");
+        dateInput.min = today;
+        dateInput.value = today;
+    })();
+
+    // Update live preview
+    function updatePreview() {
+        var sNo = document.getElementById("serviceNo").value.trim() || "[Service]";
+        var src = document.getElementById("source").value.trim() || "[Origin]";
+        var dst = document.getElementById("destination").value.trim() || "[Destination]";
+        var dt = document.getElementById("date").value || "[Date]";
+        var tm = document.getElementById("time").value || "[Time]";
+        var seats = document.getElementById("seats").value || "0";
+
+        document.getElementById("livePreviewText").innerHTML =
+            "<strong>Route Schedule:</strong> Bus <strong>" + escapeHtml(sNo) + "</strong> departs from <strong>" + 
+            escapeHtml(src) + "</strong> to <strong>" + escapeHtml(dst) + "</strong> on <strong>" + 
+            escapeHtml(dt) + " at " + escapeHtml(tm) + "</strong> (" + seats + " seats total).";
+    }
+
+    ["serviceNo", "source", "destination", "date", "time", "seats"].forEach(function(id) {
+        document.getElementById(id).addEventListener("input", updatePreview);
+    });
+
+    // Form submit
+    document.getElementById("addBusForm").addEventListener("submit", async function(e) {
+        e.preventDefault();
+        var msgEl = document.getElementById("addMsg");
+        hideMsg(msgEl);
+        document.getElementById("successActions").style.display = "none";
+
+        var payload = {
+            service_no: document.getElementById("serviceNo").value.trim(),
+            source: document.getElementById("source").value.trim(),
+            destination: document.getElementById("destination").value.trim(),
+            departure_date: document.getElementById("date").value,
+            departure_time: document.getElementById("time").value,
+            total_seats: parseInt(document.getElementById("seats").value, 10)
+        };
+
+        if (!payload.service_no || !payload.source || !payload.destination ||
+            !payload.departure_date || !payload.departure_time || !payload.total_seats) {
+            showMsg(msgEl, "Please fill in all required fields.", "warning");
+            return;
+        }
+
+        if (payload.total_seats < 1 || payload.total_seats > 500) {
+            showMsg(msgEl, "Total seats must be between 1 and 500.", "warning");
+            return;
+        }
+
+        var btn = document.getElementById("submitBtn");
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Registering Bus...';
+
+        try {
+            var result = await apiRequest("/api/buses", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+
+            showMsg(msgEl, "✅ " + result.message + " (Assigned Bus ID: #" + result.bus_id + ")", "success");
+            showToast("Bus service #" + result.bus_id + " registered!", "success");
+
+            // Setup success action links
+            document.getElementById("bookNowLink").href = "book.html?bus_id=" + result.bus_id;
+            document.getElementById("successSummary").textContent = 
+                "✅ Bus #" + result.bus_id + " (" + payload.service_no + " • " + payload.source + " → " + payload.destination + ") is now live in the fleet!";
+            document.getElementById("successActions").style.display = "block";
+
+            loadStats();
+
+        } catch (err) {
+            showMsg(msgEl, err.message, "error");
+            showToast(err.message, "error");
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = "➕ Register Bus Service";
+        }
+    });
+
+    document.getElementById("addAnotherBtn").addEventListener("click", function() {
+        document.getElementById("addBusForm").reset();
+        document.getElementById("successActions").style.display = "none";
+        hideMsg(document.getElementById("addMsg"));
+        var today = new Date().toISOString().split("T")[0];
+        document.getElementById("date").value = today;
+        document.getElementById("serviceNo").focus();
+        updatePreview();
+    });
+
+    document.getElementById("resetBtn").addEventListener("click", function() {
+        hideMsg(document.getElementById("addMsg"));
+        document.getElementById("successActions").style.display = "none";
+        setTimeout(updatePreview, 50);
+    });
+
+    function escapeHtml(str) {
+        if (!str) return "";
+        return String(str)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    onReady(updatePreview);
+</script>
+
+</body>
+</html>

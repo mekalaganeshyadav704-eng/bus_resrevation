@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cancel Reservation - Bus Reservation System</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="navbar-inner">
+        <a href="index.html" class="navbar-brand"><span>🚌</span> Bus Reservation System</a>
+        <button class="hamburger" id="hamburgerBtn" aria-label="Menu">☰</button>
+        <ul class="nav-links" id="navLinks">
+            <li><a href="index.html">Dashboard</a></li>
+            <li><a href="search.html">Search Buses</a></li>
+            <li><a href="buses.html">All Buses</a></li>
+            <li><a href="add-bus.html">Add Bus</a></li>
+            <li><a href="book.html">Book Tickets</a></li>
+            <li><a href="reservations.html">Reservations</a></li>
+            <li><a href="cancel.html" class="active">Cancel</a></li>
+        </ul>
+    </div>
+</nav>
+
+<div class="page-header">
+    <div class="page-header-inner">
+        <h1 class="page-title">❌ Cancel Reservation</h1>
+        <p class="page-subtitle">Search your booking by Reservation ID to view details and safely release your seats</p>
+    </div>
+</div>
+
+<div class="container">
+
+    <!-- Lookup Card -->
+    <div class="card" style="max-width: 760px; margin: 0 auto 24px;">
+        <h2 class="card-title">🔍 Find Your Booking</h2>
+        <form id="lookupForm" autocomplete="off">
+            <div style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
+                <div class="form-group" style="flex: 1; min-width: 240px;">
+                    <label for="resId">Reservation ID (Ticket Number)</label>
+                    <input type="number" id="resId" min="1" placeholder="e.g. 1" required autofocus>
+                </div>
+                <button type="submit" class="btn btn-primary" id="lookupBtn" style="height: 44px; padding: 0 24px;">
+                    🔎 Look Up Ticket
+                </button>
+                <a href="reservations.html" class="btn btn-secondary" style="height: 44px; padding: 0 16px;">
+                    View All Bookings
+                </a>
+            </div>
+        </form>
+        <div class="msg" id="lookupMsg"></div>
+    </div>
+
+    <!-- Reservation Details Card (Initially hidden) -->
+    <div class="card selection-card" id="resDetailCard" style="max-width: 760px; margin: 0 auto 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
+            <h2 class="card-title" style="margin-bottom: 0;">📋 Ticket Details</h2>
+            <span class="badge badge-available" id="ticketStatusBadge">Active Booking</span>
+        </div>
+
+        <div class="ticket-card" id="ticketCardView">
+            <div class="selection-grid" id="resDetailGrid"></div>
+        </div>
+
+        <div class="alert-box alert-warning" id="cancelNotice">
+            <span>⚠️</span>
+            <div>
+                <strong>Cancellation Policy:</strong>
+                Cancelling this reservation is immediate and irreversible. The booked seats will be automatically restored to the bus inventory for other passengers.
+            </div>
+        </div>
+
+        <div style="margin-top: 20px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap;">
+            <button type="button" class="btn btn-danger" id="cancelBtn">
+                ❌ Confirm Cancellation
+            </button>
+            <a href="reservations.html" class="btn btn-secondary">Back to Reservations</a>
+        </div>
+        <div class="msg" id="cancelMsg"></div>
+    </div>
+
+</div>
+
+<div class="footer">Bus Reservation System &copy; 2026 • Professional Transit Management</div>
+
+<script src="js/common.js"></script>
+<script>
+    var currentReservation = null;
+
+    async function lookupReservation(id) {
+        var msgEl = document.getElementById("lookupMsg");
+        var cancelMsgEl = document.getElementById("cancelMsg");
+        hideMsg(msgEl);
+        hideMsg(cancelMsgEl);
+        document.getElementById("resDetailCard").classList.remove("active");
+
+        var cleanId = parseInt(id, 10);
+        if (!cleanId || cleanId <= 0) {
+            showMsg(msgEl, "Please enter a valid positive Reservation ID.", "warning");
+            return;
+        }
+
+        var btn = document.getElementById("lookupBtn");
+        btn.disabled = true;
+        btn.textContent = "Searching...";
+
+        try {
+            var result = await apiRequest("/api/reservations/" + cleanId);
+            if (!result || !result.reservation) {
+                throw new Error("Reservation #" + cleanId + " not found.");
+            }
+
+            var r = result.reservation;
+            currentReservation = r;
+
+            var grid = document.getElementById("resDetailGrid");
+            grid.innerHTML =
+                "<div><strong>Ticket / Res ID:</strong> #" + r.reservation_id + "</div>" +
+                "<div><strong>Passenger Name:</strong> " + r.passenger_name + "</div>" +
+                "<div><strong>Bus ID:</strong> " + r.bus_id + "</div>" +
+                "<div><strong>Service No:</strong> " + (r.service_no || "Standard") + "</div>" +
+                "<div><strong>Route:</strong> " + (r.source || "-") + " → " + (r.destination || "-") + "</div>" +
+                "<div><strong>Departure Date:</strong> " + fmtDate(r.departure_date) + "</div>" +
+                "<div><strong>Departure Time:</strong> " + fmtTime(r.departure_time) + "</div>" +
+                "<div><strong>Seats Booked:</strong> <span class='badge badge-available'>" + r.seats_booked + " seat(s)</span></div>" +
+                "<div><strong>Booked On:</strong> " + fmtDateTime(r.booking_date) + "</div>";
+
+            document.getElementById("ticketStatusBadge").className = "badge badge-available";
+            document.getElementById("ticketStatusBadge").textContent = "Active Booking";
+            document.getElementById("cancelBtn").style.display = "inline-flex";
+            document.getElementById("cancelNotice").style.display = "flex";
+            document.getElementById("resDetailCard").classList.add("active");
+
+            // Scroll into view gently
+            document.getElementById("resDetailCard").scrollIntoView({ behavior: "smooth", block: "nearest" });
+        } catch (err) {
+            currentReservation = null;
+            showMsg(msgEl, err.message, "error");
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "🔎 Look Up Ticket";
+        }
+    }
+
+    document.getElementById("lookupForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+        var val = document.getElementById("resId").value.trim();
+        lookupReservation(val);
+    });
+
+    document.getElementById("cancelBtn").addEventListener("click", async function() {
+        if (!currentReservation) return;
+
+        var cancelMsgEl = document.getElementById("cancelMsg");
+        hideMsg(cancelMsgEl);
+
+        var confirmMsg = "Are you sure you want to cancel Ticket #" + currentReservation.reservation_id + 
+            " for " + currentReservation.passenger_name + "? (" + currentReservation.seats_booked + " seat(s) will be released)";
+
+        if (!confirm(confirmMsg)) return;
+
+        var btn = document.getElementById("cancelBtn");
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Cancelling...';
+
+        try {
+            var delResult = await apiRequest("/api/reservations/" + currentReservation.reservation_id, {
+                method: "DELETE"
+            });
+
+            showMsg(cancelMsgEl, "✅ " + delResult.message, "success");
+            showToast("Reservation #" + currentReservation.reservation_id + " cancelled successfully.", "success");
+
+            // Update UI status
+            document.getElementById("ticketStatusBadge").className = "badge badge-full";
+            document.getElementById("ticketStatusBadge").textContent = "Cancelled";
+            document.getElementById("cancelBtn").style.display = "none";
+            document.getElementById("cancelNotice").style.display = "none";
+
+            // Update stats in background
+            loadStats();
+        } catch (err) {
+            showMsg(cancelMsgEl, err.message, "error");
+            showToast("Failed to cancel: " + err.message, "error");
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "❌ Confirm Cancellation";
+        }
+    });
+
+    // Auto-fill and lookup if ?id= is in query string
+    onReady(function() {
+        var params = new URLSearchParams(window.location.search);
+        var rid = params.get("id");
+        if (rid) {
+            document.getElementById("resId").value = rid;
+            lookupReservation(rid);
+        }
+    });
+</script>
+
+</body>
+</html>

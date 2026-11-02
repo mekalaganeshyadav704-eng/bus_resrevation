@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Buses - Bus Reservation System</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="navbar-inner">
+        <a href="index.html" class="navbar-brand"><span>🚌</span> Bus Reservation System</a>
+        <button class="hamburger" id="hamburgerBtn" aria-label="Menu">☰</button>
+        <ul class="nav-links" id="navLinks">
+            <li><a href="index.html">Dashboard</a></li>
+            <li><a href="search.html">Search Buses</a></li>
+            <li><a href="buses.html" class="active">All Buses</a></li>
+            <li><a href="add-bus.html">Add Bus</a></li>
+            <li><a href="book.html">Book Tickets</a></li>
+            <li><a href="reservations.html">Reservations</a></li>
+            <li><a href="cancel.html">Cancel</a></li>
+        </ul>
+    </div>
+</nav>
+
+<div class="page-header">
+    <div class="page-header-inner">
+        <h1 class="page-title">📋 Complete Bus Schedule</h1>
+        <p class="page-subtitle">Browse all registered fleet services, departure timetables, and live seat occupancy</p>
+    </div>
+</div>
+
+<div class="container">
+
+    <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px; margin-bottom:20px;">
+            <div>
+                <h2 class="card-title" style="margin-bottom:4px;" id="busesHeaderTitle">Registered Fleet</h2>
+                <span class="text-muted" id="busesHeaderSubtitle" style="font-size:0.85rem;">Loading bus schedules...</span>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                <input type="text" id="busSearchInput" placeholder="🔍 Filter route, station, or service #..." 
+                       style="padding:8px 14px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:0.85rem; min-width:280px;">
+                <a href="add-bus.html" class="btn btn-primary btn-sm">➕ Add New Bus</a>
+                <button type="button" class="btn btn-secondary btn-sm" id="reloadBusesBtn">🔄 Refresh</button>
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Bus ID</th>
+                        <th>Service No.</th>
+                        <th>Origin Station</th>
+                        <th>Destination</th>
+                        <th>Departure Date</th>
+                        <th>Departure Time</th>
+                        <th>Total Capacity</th>
+                        <th>Seat Status</th>
+                        <th>Quick Action</th>
+                    </tr>
+                </thead>
+                <tbody id="busTableBody">
+                    <tr><td colspan="9" class="empty-state"><span class="spinner"></span> Loading fleet data...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="msg" id="busMsg"></div>
+    </div>
+
+</div>
+
+<div class="footer">Bus Reservation System &copy; 2026 • Professional Transit Management</div>
+
+<script src="js/common.js"></script>
+<script>
+    var allBusesList = [];
+
+    async function loadBuses() {
+        var tbody = document.getElementById("busTableBody");
+        var msgEl = document.getElementById("busMsg");
+        hideMsg(msgEl);
+
+        try {
+            var buses = await apiRequest("/api/buses");
+            allBusesList = Array.isArray(buses) ? buses : [];
+            renderBuses(allBusesList);
+        } catch (e) {
+            tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Failed to load bus schedule.</td></tr>';
+            showMsg(msgEl, e.message, "error");
+        }
+    }
+
+    function renderBuses(list) {
+        var tbody = document.getElementById("busTableBody");
+        tbody.innerHTML = "";
+
+        var count = list.length;
+        var totalAvailable = list.reduce(function(sum, b) { return sum + (Number(b.available_seats) || 0); }, 0);
+        var totalCap = list.reduce(function(sum, b) { return sum + (Number(b.total_seats) || 0); }, 0);
+
+        document.getElementById("busesHeaderTitle").textContent = "Registered Fleet (" + count + " Buses)";
+        document.getElementById("busesHeaderSubtitle").textContent = totalAvailable + " seats available out of " + totalCap + " total fleet capacity";
+
+        if (count === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" class="empty-state">' +
+                '<span class="empty-state-icon">🚌</span>' +
+                '<strong>No buses found.</strong><br>' +
+                '<span class="text-muted">No services match your search or none have been added yet.</span><br><br>' +
+                '<a href="add-bus.html" class="btn btn-primary btn-sm">➕ Register First Bus</a>' +
+                '</td></tr>';
+            return;
+        }
+
+        list.forEach(function(b) {
+            var tr = document.createElement("tr");
+
+            // Bus ID
+            var idTd = document.createElement("td");
+            idTd.innerHTML = '<strong style="color:var(--accent);">#' + b.bus_id + '</strong>';
+            tr.appendChild(idTd);
+
+            // Service No
+            var sTd = document.createElement("td");
+            sTd.innerHTML = '<strong>' + escapeHtml(b.service_no) + '</strong>';
+            tr.appendChild(sTd);
+
+            // Source
+            tr.appendChild(textCell(b.source));
+
+            // Destination
+            tr.appendChild(textCell(b.destination));
+
+            // Departure Date
+            tr.appendChild(textCell(fmtDate(b.departure_date)));
+
+            // Departure Time
+            tr.appendChild(textCell(fmtTime(b.departure_time)));
+
+            // Total Seats
+            tr.appendChild(textCell(b.total_seats + " seats"));
+
+            // Available Seats badge
+            var atd = document.createElement("td");
+            atd.innerHTML = seatBadge(b.available_seats);
+            tr.appendChild(atd);
+
+            // Action
+            var actTd = document.createElement("td");
+            if (Number(b.available_seats) > 0) {
+                var a = document.createElement("a");
+                a.className = "btn btn-success btn-sm";
+                a.href = "book.html?bus_id=" + b.bus_id;
+                a.innerHTML = "🎟️ Book";
+                a.style.padding = "5px 12px";
+                a.style.fontSize = "0.8rem";
+                actTd.appendChild(a);
+            } else {
+                actTd.innerHTML = '<span class="badge badge-full">Sold Out</span>';
+            }
+            tr.appendChild(actTd);
+
+            tbody.appendChild(tr);
+        });
+    }
+
+    function escapeHtml(str) {
+        if (!str) return "";
+        return String(str)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    // Filter buses by search input
+    document.getElementById("busSearchInput").addEventListener("input", function(e) {
+        var q = e.target.value.toLowerCase().trim();
+        if (!q) {
+            renderBuses(allBusesList);
+            return;
+        }
+
+        var filtered = allBusesList.filter(function(b) {
+            var matchId = String(b.bus_id).includes(q);
+            var matchService = String(b.service_no || "").toLowerCase().includes(q);
+            var matchSource = String(b.source || "").toLowerCase().includes(q);
+            var matchDest = String(b.destination || "").toLowerCase().includes(q);
+            var matchDate = String(b.departure_date || "").includes(q);
+            return matchId || matchService || matchSource || matchDest || matchDate;
+        });
+
+        renderBuses(filtered);
+    });
+
+    document.getElementById("reloadBusesBtn").addEventListener("click", loadBuses);
+    onReady(loadBuses);
+</script>
+
+</body>
+</html>

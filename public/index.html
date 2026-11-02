@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Bus Reservation System</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .hero-banner {
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
+            color: #fff;
+            padding: 38px 32px;
+            border-radius: var(--radius-lg);
+            margin-bottom: 28px;
+            box-shadow: var(--shadow-lg);
+            position: relative;
+            overflow: hidden;
+        }
+        .hero-banner::after {
+            content: "🚌";
+            position: absolute;
+            right: 28px;
+            bottom: -20px;
+            font-size: 8rem;
+            opacity: 0.12;
+            pointer-events: none;
+        }
+        .hero-title {
+            font-size: 1.85rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+        }
+        .hero-desc {
+            font-size: 0.95rem;
+            color: #cbd5e1;
+            max-width: 640px;
+            line-height: 1.6;
+        }
+        .hero-actions {
+            margin-top: 22px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="navbar-inner">
+        <a href="index.html" class="navbar-brand"><span>🚌</span> Bus Reservation System</a>
+        <button class="hamburger" id="hamburgerBtn" aria-label="Menu">☰</button>
+        <ul class="nav-links" id="navLinks">
+            <li><a href="index.html" class="active">Dashboard</a></li>
+            <li><a href="search.html">Search Buses</a></li>
+            <li><a href="buses.html">All Buses</a></li>
+            <li><a href="add-bus.html">Add Bus</a></li>
+            <li><a href="book.html">Book Tickets</a></li>
+            <li><a href="reservations.html">Reservations</a></li>
+            <li><a href="cancel.html">Cancel</a></li>
+        </ul>
+    </div>
+</nav>
+
+<div class="page-header">
+    <div class="page-header-inner">
+        <h1 class="page-title">📊 Operations Dashboard</h1>
+        <p class="page-subtitle">Real-time overview of fleet operations, bookings, and seat inventory</p>
+    </div>
+</div>
+
+<div class="container">
+
+    <!-- Hero Banner -->
+    <div class="hero-banner">
+        <h2 class="hero-title">Welcome to the Transit Management System</h2>
+        <p class="hero-desc">
+            Easily search scheduled routes, reserve passenger seats with concurrency safety, monitor real-time bus occupancies, and manage cancellations seamlessly.
+        </p>
+        <div class="hero-actions">
+            <a href="search.html" class="btn btn-primary" style="background:#6366f1;">🔍 Search Available Buses</a>
+            <a href="book.html" class="btn btn-success">🎟️ Book a Ticket</a>
+            <a href="buses.html" class="btn btn-secondary" style="background:rgba(255,255,255,0.1); color:#fff; border:1px solid rgba(255,255,255,0.2);">📋 View All Schedules</a>
+        </div>
+    </div>
+
+    <!-- Live Stats Grid -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div>
+                <div class="stat-label">Total Buses in Fleet</div>
+                <div class="stat-value" id="statBuses">-</div>
+                <small class="text-muted" style="font-size:0.75rem;">Active registered services</small>
+            </div>
+            <div class="stat-icon">🚌</div>
+        </div>
+
+        <div class="stat-card green">
+            <div>
+                <div class="stat-label">Available Bookable Seats</div>
+                <div class="stat-value" id="statSeats">-</div>
+                <small class="text-muted" style="font-size:0.75rem;">Instant reservation capacity</small>
+            </div>
+            <div class="stat-icon">💺</div>
+        </div>
+
+        <div class="stat-card purple">
+            <div>
+                <div class="stat-label">Confirmed Bookings</div>
+                <div class="stat-value" id="statBookings">-</div>
+                <small class="text-muted" style="font-size:0.75rem;">Active passenger tickets</small>
+            </div>
+            <div class="stat-icon">🎫</div>
+        </div>
+
+        <div class="stat-card amber">
+            <div>
+                <div class="stat-label">Total Fleet Capacity</div>
+                <div class="stat-value" id="statCapacity">-</div>
+                <small class="text-muted" style="font-size:0.75rem;">Total seats across all buses</small>
+            </div>
+            <div class="stat-icon">📊</div>
+        </div>
+    </div>
+
+    <!-- Quick Ticket Lookup Card -->
+    <div class="card" style="border-left: 4px solid var(--accent);">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+            <h2 class="card-title" style="margin-bottom:0;">🔎 Quick Ticket Lookup</h2>
+            <span class="text-muted" style="font-size:0.82rem;">Look up reservation details or cancel a ticket</span>
+        </div>
+        <form id="quickLookupForm" style="display:flex; gap:10px; flex-wrap:wrap; max-width:600px;">
+            <input type="number" id="quickResId" min="1" placeholder="Enter Reservation ID (e.g. 1)" 
+                   style="flex:1; min-width:200px; padding:10px 14px; border:1.5px solid var(--border); border-radius:var(--radius-sm);" required>
+            <button type="submit" class="btn btn-primary" style="padding:10px 22px;">Check Ticket Status</button>
+        </form>
+    </div>
+
+    <!-- Quick Navigation Grid -->
+    <div class="card">
+        <h2 class="card-title">Quick Actions</h2>
+        <div class="quick-nav">
+            <a href="search.html" class="quick-nav-card">
+                <span class="icon">🔍</span>
+                <span class="label">Search Buses</span>
+                <span class="desc">Find routes by origin, destination & date</span>
+            </a>
+            <a href="buses.html" class="quick-nav-card">
+                <span class="icon">📋</span>
+                <span class="label">All Buses</span>
+                <span class="desc">Complete bus timetable and schedules</span>
+            </a>
+            <a href="add-bus.html" class="quick-nav-card">
+                <span class="icon">➕</span>
+                <span class="label">Add New Bus</span>
+                <span class="desc">Register a new bus service route</span>
+            </a>
+            <a href="book.html" class="quick-nav-card">
+                <span class="icon">🎟️</span>
+                <span class="label">Book Tickets</span>
+                <span class="desc">Select a bus and reserve seats</span>
+            </a>
+            <a href="reservations.html" class="quick-nav-card">
+                <span class="icon">📑</span>
+                <span class="label">Reservations</span>
+                <span class="desc">View, filter, and track all bookings</span>
+            </a>
+            <a href="cancel.html" class="quick-nav-card">
+                <span class="icon">❌</span>
+                <span class="label">Cancel Booking</span>
+                <span class="desc">Look up and cancel existing tickets</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Recent Buses Table -->
+    <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:18px;">
+            <h2 class="card-title" style="margin-bottom:0;">🚍 Upcoming Scheduled Departures</h2>
+            <a href="buses.html" class="btn btn-outline btn-sm">View All Buses →</a>
+        </div>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Bus ID</th>
+                        <th>Service No.</th>
+                        <th>Origin</th>
+                        <th>Destination</th>
+                        <th>Departure Date</th>
+                        <th>Departure Time</th>
+                        <th>Total Seats</th>
+                        <th>Available Seats</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="recentBuses">
+                    <tr><td colspan="9" class="empty-state"><span class="spinner"></span> Loading departures...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<div class="footer">Bus Reservation System &copy; 2026 • Professional Transit Management</div>
+
+<script src="js/common.js"></script>
+<script>
+    async function loadRecentBuses() {
+        try {
+            var buses = await apiRequest("/api/buses");
+            var tbody = document.getElementById("recentBuses");
+            tbody.innerHTML = "";
+
+            if (!Array.isArray(buses) || buses.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="empty-state">' +
+                    '<span class="empty-state-icon">🚌</span>No bus departures registered yet. <a href="add-bus.html">Add one now</a>.</td></tr>';
+                return;
+            }
+
+            var list = buses.slice(0, 6);
+            list.forEach(function(b) {
+                var tr = document.createElement("tr");
+
+                // ID
+                var idTd = document.createElement("td");
+                idTd.innerHTML = '<strong style="color:var(--accent);">#' + b.bus_id + '</strong>';
+                tr.appendChild(idTd);
+
+                // Service
+                var sTd = document.createElement("td");
+                sTd.innerHTML = '<strong>' + escapeHtml(b.service_no) + '</strong>';
+                tr.appendChild(sTd);
+
+                // Origin
+                tr.appendChild(textCell(b.source));
+
+                // Destination
+                tr.appendChild(textCell(b.destination));
+
+                // Date
+                tr.appendChild(textCell(fmtDate(b.departure_date)));
+
+                // Time
+                tr.appendChild(textCell(fmtTime(b.departure_time)));
+
+                // Total
+                tr.appendChild(textCell(b.total_seats));
+
+                // Available
+                var atd = document.createElement("td");
+                atd.innerHTML = seatBadge(b.available_seats);
+                tr.appendChild(atd);
+
+                // Action
+                var actTd = document.createElement("td");
+                if (Number(b.available_seats) > 0) {
+                    var a = document.createElement("a");
+                    a.className = "btn btn-success btn-sm";
+                    a.href = "book.html?bus_id=" + b.bus_id;
+                    a.innerHTML = "Book";
+                    a.style.padding = "4px 12px";
+                    a.style.fontSize = "0.78rem";
+                    actTd.appendChild(a);
+                } else {
+                    actTd.innerHTML = '<span class="badge badge-full">Sold Out</span>';
+                }
+                tr.appendChild(actTd);
+
+                tbody.appendChild(tr);
+            });
+        } catch (e) {
+            document.getElementById("recentBuses").innerHTML =
+                '<tr><td colspan="9" class="empty-state">Could not load bus schedules.</td></tr>';
+        }
+    }
+
+    function escapeHtml(str) {
+        if (!str) return "";
+        return String(str)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    // Quick lookup handler
+    document.getElementById("quickLookupForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+        var id = document.getElementById("quickResId").value.trim();
+        if (id) {
+            window.location.href = "cancel.html?id=" + encodeURIComponent(id);
+        }
+    });
+
+    onReady(function() {
+        loadStats();
+        loadRecentBuses();
+    });
+</script>
+
+</body>
+</html>
